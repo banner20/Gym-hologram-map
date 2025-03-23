@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Gym Layout</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Inter font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="gym-info">
+                <h2></h2>
+                <div id="gym-details"></div>
+            </div>
+            <div class="friends-section">
+                <h2></h2>
+                <div id="friends-list"></div>
+            </div>
+        </div>
+        <div id="canvas-container"></div>
+    </div>
+    <script src="js/gymData.js"></script>
+    <script src="js/Scene.js"></script>
+    <script src="js/Machine.js"></script>
+    <script src="js/Section.js"></script>
+    <script src="js/UI.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
