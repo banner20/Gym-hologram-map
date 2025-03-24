@@ -7,6 +7,7 @@ class UI {
         this.sectionInfoVisible = false;
         this.pathVisible = false;
         this.pathElements = [];
+        this.mirrorMode = 'none'; // 'none', 'horizontal', 'vertical', 'both'
         this.init();
     }
 
@@ -18,6 +19,9 @@ class UI {
         this.createWorkoutPanel();
         this.createStatsPanel();
         this.setupEventListeners();
+        
+        // Add window resize handler
+        window.addEventListener('resize', () => this.handleResize());
     }
 
     createMachineFilters() {
@@ -124,7 +128,42 @@ class UI {
         resetViewBtn.title = 'Reset Camera View';
         bottomBar.appendChild(resetViewBtn);
         
+        // Add mirror display button
+        const mirrorDisplayBtn = document.createElement('button');
+        mirrorDisplayBtn.id = 'mirrorDisplayBtn';
+        mirrorDisplayBtn.classList.add('circular-button');
+        mirrorDisplayBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i>';
+        mirrorDisplayBtn.title = 'Mirror Display';
+        bottomBar.appendChild(mirrorDisplayBtn);
+        
         document.body.appendChild(bottomBar);
+        
+        // Add mirror mode selector dropdown
+        this.createMirrorSelector();
+    }
+
+    createMirrorSelector() {
+        const mirrorSelector = document.createElement('div');
+        mirrorSelector.id = 'mirrorSelector';
+        mirrorSelector.className = 'mirror-selector';
+        mirrorSelector.style.display = 'none';
+        
+        mirrorSelector.innerHTML = `
+            <div class="mirror-option" data-mirror="none">
+                <i class="fas fa-square"></i> No Mirroring
+            </div>
+            <div class="mirror-option" data-mirror="horizontal">
+                <i class="fas fa-arrows-alt-h"></i> Horizontal Mirror
+            </div>
+            <div class="mirror-option" data-mirror="vertical">
+                <i class="fas fa-arrows-alt-v"></i> Vertical Mirror
+            </div>
+            <div class="mirror-option" data-mirror="both">
+                <i class="fas fa-expand-arrows-alt"></i> Mirror Both
+            </div>
+        `;
+        
+        document.body.appendChild(mirrorSelector);
     }
 
     createWorkoutPanel() {
@@ -290,6 +329,40 @@ class UI {
 
         document.getElementById('sectionInfoBtn').addEventListener('click', () => {
             this.toggleSectionInfo();
+        });
+        
+        // Mirror display button
+        document.getElementById('mirrorDisplayBtn').addEventListener('click', (e) => {
+            // If Shift key is pressed, do a quick toggle between normal and horizontal mirror
+            if (e.shiftKey) {
+                this.quickMirrorToggle();
+                return;
+            }
+            
+            // Otherwise show mirror selector near the button
+            const mirrorSelector = document.getElementById('mirrorSelector');
+            const button = e.currentTarget;
+            const buttonRect = button.getBoundingClientRect();
+            
+            if (mirrorSelector.style.display === 'none') {
+                mirrorSelector.style.display = 'block';
+                mirrorSelector.style.left = `${buttonRect.left}px`;
+                mirrorSelector.style.top = `${buttonRect.top - mirrorSelector.offsetHeight - 10}px`;
+                this.updateButtonState('mirrorDisplayBtn', true);
+            } else {
+                mirrorSelector.style.display = 'none';
+                this.updateButtonState('mirrorDisplayBtn', false);
+            }
+        });
+        
+        // Mirror selector options
+        document.querySelectorAll('.mirror-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const mirrorMode = option.dataset.mirror;
+                this.applyMirrorMode(mirrorMode);
+                document.getElementById('mirrorSelector').style.display = 'none';
+                this.updateButtonState('mirrorDisplayBtn', mirrorMode !== 'none');
+            });
         });
         
         // Machine filter listeners
@@ -652,5 +725,218 @@ class UI {
             console.log("Hiding workout path");
             this.clearPath();
         }
+    }
+
+    // Apply the selected mirror mode
+    applyMirrorMode(mode) {
+        this.mirrorMode = mode;
+        
+        // Get the main canvas and container
+        const container = document.getElementById('canvas-container');
+        const canvas = container.querySelector('canvas');
+        
+        // First, remove any existing mirroring classes
+        container.classList.remove('mirror-horizontal', 'mirror-vertical', 'mirror-both');
+        
+        // Remove any existing counter transforms
+        document.querySelectorAll('.mirror-counter').forEach(el => {
+            el.parentNode.removeChild(el);
+        });
+        
+        // Apply the new transform based on selected mode
+        switch(mode) {
+            case 'horizontal':
+                container.classList.add('mirror-horizontal');
+                this.fixMirroredElements('horizontal');
+                // Update camera if needed
+                this.mirrorCamera('horizontal');
+                break;
+            case 'vertical':
+                container.classList.add('mirror-vertical');
+                this.fixMirroredElements('vertical');
+                // Update camera if needed
+                this.mirrorCamera('vertical');
+                break;
+            case 'both':
+                container.classList.add('mirror-both');
+                this.fixMirroredElements('both');
+                // Update camera if needed
+                this.mirrorCamera('both');
+                break;
+            default:
+                // No mirroring - reset camera
+                this.mirrorCamera('none');
+                break;
+        }
+        
+        // Update mirror selector options UI
+        document.querySelectorAll('.mirror-option').forEach(option => {
+            option.classList.toggle('active', option.dataset.mirror === mode);
+        });
+        
+        console.log(`Mirror mode set to: ${mode}`);
+    }
+
+    // Fix text and UI elements when display is mirrored
+    fixMirroredElements(mode) {
+        // Add a stylesheet for counter-transforms
+        const styleSheet = document.createElement('style');
+        styleSheet.className = 'mirror-counter';
+        
+        switch(mode) {
+            case 'horizontal':
+                styleSheet.textContent = `
+                    .section-3d-label, .path-number, 
+                    .stats-panel, .friends-panel, .workout-panel, .machine-filters,
+                    .bottom-bar, .circular-button, .mirror-selector, .machine-info {
+                        transform: scaleX(-1);
+                    }
+                    .path-line {
+                        transform-origin: center !important;
+                        transform: scaleX(-1) !important;
+                    }
+                `;
+                break;
+            case 'vertical':
+                styleSheet.textContent = `
+                    .section-3d-label, .path-number, 
+                    .stats-panel, .friends-panel, .workout-panel, .machine-filters,
+                    .bottom-bar, .circular-button, .mirror-selector, .machine-info {
+                        transform: scaleY(-1);
+                    }
+                    .path-line {
+                        transform-origin: center !important;
+                        transform: scaleY(-1) !important;
+                    }
+                `;
+                break;
+            case 'both':
+                styleSheet.textContent = `
+                    .section-3d-label, .path-number, 
+                    .stats-panel, .friends-panel, .workout-panel, .machine-filters,
+                    .bottom-bar, .circular-button, .mirror-selector, .machine-info {
+                        transform: scale(-1, -1);
+                    }
+                    .path-line {
+                        transform-origin: center !important;
+                        transform: scale(-1, -1) !important;
+                    }
+                `;
+                break;
+        }
+        
+        document.head.appendChild(styleSheet);
+    }
+
+    // Mirror the camera view if needed
+    mirrorCamera(mode) {
+        if (!this.scene || !this.scene.camera) return;
+        
+        // Reset any projection matrix modifications
+        this.scene.camera.projectionMatrix.identity();
+        
+        // Apply mirroring to projection matrix if needed
+        switch(mode) {
+            case 'horizontal':
+                // Mirror horizontally
+                this.scene.camera.projectionMatrix.elements[0] *= -1;
+                break;
+            case 'vertical':
+                // Mirror vertically
+                this.scene.camera.projectionMatrix.elements[5] *= -1;
+                break;
+            case 'both':
+                // Mirror both horizontally and vertically
+                this.scene.camera.projectionMatrix.elements[0] *= -1;
+                this.scene.camera.projectionMatrix.elements[5] *= -1;
+                break;
+            case 'none':
+                // Reset to default
+                break;
+        }
+        
+        // Force camera update
+        this.scene.camera.updateProjectionMatrix();
+        
+        // Also update controls if they exist
+        if (this.scene.controls) {
+            this.scene.controls.update();
+        }
+        
+        // Force a render
+        if (this.scene.renderer) {
+            this.scene.renderer.render(this.scene.scene, this.scene.camera);
+        }
+    }
+
+    // Handle window resize
+    handleResize() {
+        // If we're in a mirrored mode, reapply it after resize
+        if (this.mirrorMode !== 'none') {
+            // Update path positions and other UI elements
+            if (this.pathVisible) {
+                const workoutPath = this.scene.getWorkoutPath();
+                this.updatePathPositions(workoutPath);
+            }
+            
+            // Close any open dropdowns
+            document.getElementById('mirrorSelector').style.display = 'none';
+        }
+    }
+
+    // Quick toggle method for horizontal mirroring
+    quickMirrorToggle() {
+        if (this.mirrorMode === 'none') {
+            // Switch to horizontal mirror
+            this.applyMirrorMode('horizontal');
+        } else {
+            // Switch back to normal
+            this.applyMirrorMode('none');
+        }
+        
+        // Update button state
+        this.updateButtonState('mirrorDisplayBtn', this.mirrorMode !== 'none');
+        
+        // Show temporary message
+        this.showMirrorMessage(this.mirrorMode);
+    }
+
+    // Show a temporary message with the current mirror mode
+    showMirrorMessage(mode) {
+        // Remove any existing message
+        const existingMsg = document.getElementById('mirrorMessage');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+        
+        // Create message element
+        const message = document.createElement('div');
+        message.id = 'mirrorMessage';
+        message.className = 'mirror-message';
+        
+        // Set message text based on mode
+        let messageText = '';
+        switch(mode) {
+            case 'horizontal':
+                messageText = 'Horizontal Mirror Mode';
+                break;
+            case 'vertical':
+                messageText = 'Vertical Mirror Mode';
+                break;
+            case 'both':
+                messageText = 'Both Axes Mirror Mode';
+                break;
+            default:
+                messageText = 'Normal Display Mode';
+        }
+        
+        message.textContent = messageText;
+        document.body.appendChild(message);
+        
+        // Fade out and remove after delay
+        setTimeout(() => {
+            message.classList.add('fade-out');
+            setTimeout(() => message.remove(), 500);
+        }, 2000);
     }
 } 

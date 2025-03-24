@@ -778,11 +778,25 @@ class Scene {
         // Project to screen coordinates
         vector.project(this.camera);
         
+        // Get mirror mode from UI if available
+        let mirrorMode = 'none';
+        if (window.ui && window.ui.mirrorMode) {
+            mirrorMode = window.ui.mirrorMode;
+        }
+        
         // Convert normalized coordinates to screen coordinates
-        return {
-            x: (vector.x * 0.5 + 0.5) * window.innerWidth,
-            y: (-(vector.y) * 0.5 + 0.5) * window.innerHeight
-        };
+        let x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        let y = (-(vector.y) * 0.5 + 0.5) * window.innerHeight;
+        
+        // Apply mirroring if needed
+        if (mirrorMode === 'horizontal' || mirrorMode === 'both') {
+            x = window.innerWidth - x;
+        }
+        if (mirrorMode === 'vertical' || mirrorMode === 'both') {
+            y = window.innerHeight - y;
+        }
+        
+        return { x, y };
     }
 
     // Get workout machine positions for path planning

@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the UI with the scene
     const ui = new UI(scene);
     
+    // Make UI globally accessible for mirroring functions
+    window.ui = ui;
+    
     // Log initialization complete
     console.log("Virtual Gym Application initialized successfully");
 }); 
