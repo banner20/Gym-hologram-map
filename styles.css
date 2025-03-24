@@ -1173,6 +1173,52 @@ body {
     display: none;
 }
 
+/* Mirror modes for the entire application */
+.mirror-horizontal {
+    transform: scaleX(-1);
+    transform-origin: center center;
+}
+
+.mirror-vertical {
+    transform: scaleY(-1);
+    transform-origin: center center;
+}
+
+.mirror-both {
+    transform: scale(-1, -1);
+    transform-origin: center center;
+}
+
+/* Custom transformations for path lines when in mirrored mode */
+.mirror-horizontal .path-line {
+    transform-origin: center !important;
+    /* Additional transform will be applied via JavaScript */
+}
+
+.mirror-vertical .path-line {
+    transform-origin: center !important;
+    /* Additional transform will be applied via JavaScript */
+}
+
+.mirror-both .path-line {
+    transform-origin: center !important;
+    /* Additional transform will be applied via JavaScript */
+}
+
+/* Ensure path numbers and markers are properly positioned in mirrored mode */
+.mirror-horizontal .path-number,
+.mirror-vertical .path-number,
+.mirror-both .path-number {
+    /* Will be positioned via JavaScript */
+}
+
+/* Ensure machine info panel is properly mirrored */
+.mirror-horizontal .machine-info,
+.mirror-vertical .machine-info,
+.mirror-both .machine-info {
+    /* Position will be handled via JavaScript */
+}
+
 /* Mirror selector dropdown */
 .mirror-selector {
     position: absolute;
@@ -1227,20 +1273,7 @@ body {
     color: #3b82f6;
 }
 
-/* Ensure proper display for 3D scene when mirrored */
-.mirror-horizontal {
-    transform: scaleX(-1);
-}
-
-.mirror-vertical {
-    transform: scaleY(-1);
-}
-
-.mirror-both {
-    transform: scale(-1, -1);
-}
-
-/* Mirror mode message */
+/* Mirror message display */
 .mirror-message {
     position: fixed;
     top: 20px;
@@ -1265,4 +1298,114 @@ body {
 @keyframes fadeOut {
     from { opacity: 1; transform: translate(-50%, 0); }
     to { opacity: 0; transform: translate(-50%, -20px); }
+}
+
+/* Ensure mirror message is always readable regardless of mirror mode */
+.mirror-horizontal .mirror-message,
+.mirror-vertical .mirror-message,
+.mirror-both .mirror-message {
+    /* Counteract the parent transform to keep message readable */
+    transform: translateX(-50%) scaleX(1) scaleY(1);
+}
+
+/* Full UI mirroring - using the body element with data attribute */
+
+/* When horizontally mirrored */
+body[data-mirror-mode="horizontal"] {
+    transform: scaleX(-1);
+}
+
+body[data-mirror-mode="horizontal"] .stats-panel,
+body[data-mirror-mode="horizontal"] .friends-panel,
+body[data-mirror-mode="horizontal"] .workout-panel,
+body[data-mirror-mode="horizontal"] .mirror-selector,
+body[data-mirror-mode="horizontal"] .machine-info {
+    /* Apply an additional transform to counter the body transform */
+    transform: scaleX(-1);
+}
+
+body[data-mirror-mode="horizontal"] .section-3d-label,
+body[data-mirror-mode="horizontal"] .path-number {
+    /* These need to be counter-transformed */
+    transform: translate(-50%, -50%) scaleX(-1);
+}
+
+/* When vertically mirrored */
+body[data-mirror-mode="vertical"] {
+    transform: scaleY(-1);
+}
+
+body[data-mirror-mode="vertical"] .stats-panel,
+body[data-mirror-mode="vertical"] .friends-panel,
+body[data-mirror-mode="vertical"] .workout-panel,
+body[data-mirror-mode="vertical"] .mirror-selector,
+body[data-mirror-mode="vertical"] .machine-info {
+    /* Apply an additional transform to counter the body transform */
+    transform: scaleY(-1);
+}
+
+body[data-mirror-mode="vertical"] .section-3d-label,
+body[data-mirror-mode="vertical"] .path-number {
+    /* These need to be counter-transformed */
+    transform: translate(-50%, -50%) scaleY(-1);
+}
+
+/* When both horizontally and vertically mirrored */
+body[data-mirror-mode="both"] {
+    transform: scale(-1, -1);
+}
+
+body[data-mirror-mode="both"] .stats-panel,
+body[data-mirror-mode="both"] .friends-panel,
+body[data-mirror-mode="both"] .workout-panel,
+body[data-mirror-mode="both"] .mirror-selector,
+body[data-mirror-mode="both"] .machine-info {
+    /* Apply an additional transform to counter the body transform */
+    transform: scale(-1, -1);
+}
+
+body[data-mirror-mode="both"] .section-3d-label,
+body[data-mirror-mode="both"] .path-number {
+    /* These need to be counter-transformed */
+    transform: translate(-50%, -50%) scale(-1, -1);
+}
+
+/* Make text in specific elements readable in all mirror modes */
+body[data-mirror-mode="horizontal"] .friend-name,
+body[data-mirror-mode="horizontal"] .friend-status,
+body[data-mirror-mode="horizontal"] .stats-panel h3,
+body[data-mirror-mode="horizontal"] .stat-item,
+body[data-mirror-mode="horizontal"] .machine-info h3,
+body[data-mirror-mode="horizontal"] .machine-info p,
+body[data-mirror-mode="horizontal"] .section-info h3,
+body[data-mirror-mode="horizontal"] .section-info-item {
+    /* Counter-transform to make text readable */
+    display: inline-block;
+    transform: scaleX(-1);
+}
+
+body[data-mirror-mode="vertical"] .friend-name,
+body[data-mirror-mode="vertical"] .friend-status,
+body[data-mirror-mode="vertical"] .stats-panel h3,
+body[data-mirror-mode="vertical"] .stat-item,
+body[data-mirror-mode="vertical"] .machine-info h3,
+body[data-mirror-mode="vertical"] .machine-info p,
+body[data-mirror-mode="vertical"] .section-info h3,
+body[data-mirror-mode="vertical"] .section-info-item {
+    /* Counter-transform to make text readable */
+    display: inline-block;
+    transform: scaleY(-1);
+}
+
+body[data-mirror-mode="both"] .friend-name,
+body[data-mirror-mode="both"] .friend-status,
+body[data-mirror-mode="both"] .stats-panel h3,
+body[data-mirror-mode="both"] .stat-item,
+body[data-mirror-mode="both"] .machine-info h3,
+body[data-mirror-mode="both"] .machine-info p,
+body[data-mirror-mode="both"] .section-info h3,
+body[data-mirror-mode="both"] .section-info-item {
+    /* Counter-transform to make text readable */
+    display: inline-block;
+    transform: scale(-1, -1);
 } 

@@ -488,8 +488,19 @@ class UI {
         const length = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
         
+        // Set base styles
         line.style.width = `${length}px`;
-        line.style.transform = `translate(${startScreen.x}px, ${startScreen.y}px) rotate(${angle}rad)`;
+        
+        // Apply different transforms based on mirror mode
+        if (this.mirrorMode === 'none') {
+            line.style.transform = `translate(${startScreen.x}px, ${startScreen.y}px) rotate(${angle}rad)`;
+        } else if (this.mirrorMode === 'horizontal') {
+            line.style.transform = `translate(${startScreen.x}px, ${startScreen.y}px) rotate(${angle}rad) scaleX(-1)`;
+        } else if (this.mirrorMode === 'vertical') {
+            line.style.transform = `translate(${startScreen.x}px, ${startScreen.y}px) rotate(${angle}rad) scaleY(-1)`;
+        } else if (this.mirrorMode === 'both') {
+            line.style.transform = `translate(${startScreen.x}px, ${startScreen.y}px) rotate(${angle}rad) scale(-1, -1)`;
+        }
         
         this.pathElements.push(line);
         container.appendChild(line);
@@ -731,11 +742,14 @@ class UI {
     applyMirrorMode(mode) {
         this.mirrorMode = mode;
         
+        // Set the mirror mode on the body for CSS selectors
+        document.body.setAttribute('data-mirror-mode', mode);
+        
         // Get the main canvas and container
         const container = document.getElementById('canvas-container');
-        const canvas = container.querySelector('canvas');
         
-        // First, remove any existing mirroring classes
+        // First, remove any existing mirroring classes from all elements
+        document.body.classList.remove('mirror-horizontal', 'mirror-vertical', 'mirror-both');
         container.classList.remove('mirror-horizontal', 'mirror-vertical', 'mirror-both');
         
         // Remove any existing counter transforms
@@ -746,19 +760,19 @@ class UI {
         // Apply the new transform based on selected mode
         switch(mode) {
             case 'horizontal':
-                container.classList.add('mirror-horizontal');
+                document.body.classList.add('mirror-horizontal');
                 this.fixMirroredElements('horizontal');
                 // Update camera if needed
                 this.mirrorCamera('horizontal');
                 break;
             case 'vertical':
-                container.classList.add('mirror-vertical');
+                document.body.classList.add('mirror-vertical');
                 this.fixMirroredElements('vertical');
                 // Update camera if needed
                 this.mirrorCamera('vertical');
                 break;
             case 'both':
-                container.classList.add('mirror-both');
+                document.body.classList.add('mirror-both');
                 this.fixMirroredElements('both');
                 // Update camera if needed
                 this.mirrorCamera('both');
@@ -775,51 +789,62 @@ class UI {
         });
         
         console.log(`Mirror mode set to: ${mode}`);
+        
+        // Force redraw of path if visible
+        if (this.pathVisible) {
+            const workoutPath = this.scene.getWorkoutPath();
+            this.updatePathPositions(workoutPath);
+        }
+        
+        // Force update of section labels
+        if (this.scene && this.scene.updateSectionLabels) {
+            this.scene.updateSectionLabels();
+        }
     }
 
     // Fix text and UI elements when display is mirrored
     fixMirroredElements(mode) {
-        // Add a stylesheet for counter-transforms
+        // Add a stylesheet for counter-transforms to make text readable
         const styleSheet = document.createElement('style');
         styleSheet.className = 'mirror-counter';
         
         switch(mode) {
             case 'horizontal':
                 styleSheet.textContent = `
-                    .section-3d-label, .path-number, 
-                    .stats-panel, .friends-panel, .workout-panel, .machine-filters,
-                    .bottom-bar, .circular-button, .mirror-selector, .machine-info {
+                    /* Counter-mirror text elements */
+                    .section-3d-label, .path-number, .friend-name, .friend-status,
+                    .machine-info h3, .machine-info h4, .machine-info p,
+                    .stats-panel h3, .stat-item, .section-info h3,
+                    .friends-header, .workout-item, .section-info-item,
+                    .bottom-bar .circular-button i, .mirror-option {
                         transform: scaleX(-1);
-                    }
-                    .path-line {
-                        transform-origin: center !important;
-                        transform: scaleX(-1) !important;
+                        display: inline-block;
                     }
                 `;
                 break;
             case 'vertical':
                 styleSheet.textContent = `
-                    .section-3d-label, .path-number, 
-                    .stats-panel, .friends-panel, .workout-panel, .machine-filters,
-                    .bottom-bar, .circular-button, .mirror-selector, .machine-info {
+                    /* Counter-mirror text elements */
+                    .section-3d-label, .path-number, .friend-name, .friend-status,
+                    .machine-info h3, .machine-info h4, .machine-info p,
+                    .stats-panel h3, .stat-item, .section-info h3,
+                    .friends-header, .workout-item, .section-info-item,
+                    .bottom-bar .circular-button i, .mirror-option {
                         transform: scaleY(-1);
-                    }
-                    .path-line {
-                        transform-origin: center !important;
-                        transform: scaleY(-1) !important;
+                        display: inline-block;
                     }
                 `;
                 break;
             case 'both':
                 styleSheet.textContent = `
-                    .section-3d-label, .path-number, 
-                    .stats-panel, .friends-panel, .workout-panel, .machine-filters,
-                    .bottom-bar, .circular-button, .mirror-selector, .machine-info {
+                    /* Counter-mirror text elements */
+                    .section-3d-label, .path-number, .friend-name, .friend-status,
+                    .machine-info h3, .machine-info h4, .machine-info p,
+                    .stats-panel h3, .stat-item, .section-info h3,
+                    .friends-header, .workout-item, .section-info-item,
+                    .bottom-bar .circular-button i, .mirror-option {
                         transform: scale(-1, -1);
-                    }
-                    .path-line {
-                        transform-origin: center !important;
-                        transform: scale(-1, -1) !important;
+                        display: inline-block;
                     }
                 `;
                 break;
@@ -836,27 +861,29 @@ class UI {
         this.scene.camera.projectionMatrix.identity();
         
         // Apply mirroring to projection matrix if needed
-        switch(mode) {
-            case 'horizontal':
-                // Mirror horizontally
-                this.scene.camera.projectionMatrix.elements[0] *= -1;
-                break;
-            case 'vertical':
-                // Mirror vertically
-                this.scene.camera.projectionMatrix.elements[5] *= -1;
-                break;
-            case 'both':
-                // Mirror both horizontally and vertically
-                this.scene.camera.projectionMatrix.elements[0] *= -1;
-                this.scene.camera.projectionMatrix.elements[5] *= -1;
-                break;
-            case 'none':
-                // Reset to default
-                break;
+        if (mode !== 'none') {
+            // For ThreeJS scene, we need to use the projection matrix
+            const projectionMatrix = this.scene.camera.projectionMatrix.elements;
+            
+            switch(mode) {
+                case 'horizontal':
+                    // Mirror horizontally
+                    projectionMatrix[0] *= -1;
+                    break;
+                case 'vertical':
+                    // Mirror vertically
+                    projectionMatrix[5] *= -1;
+                    break;
+                case 'both':
+                    // Mirror both horizontally and vertically
+                    projectionMatrix[0] *= -1;
+                    projectionMatrix[5] *= -1;
+                    break;
+            }
+            
+            // Update projection matrix
+            this.scene.camera.updateProjectionMatrix();
         }
-        
-        // Force camera update
-        this.scene.camera.updateProjectionMatrix();
         
         // Also update controls if they exist
         if (this.scene.controls) {
@@ -867,6 +894,9 @@ class UI {
         if (this.scene.renderer) {
             this.scene.renderer.render(this.scene.scene, this.scene.camera);
         }
+        
+        // Update the hover info panel position to ensure it follows the mouse correctly
+        this.hideHoverInfo = this.scene.hideHoverInfo ? this.scene.hideHoverInfo.bind(this.scene) : null;
     }
 
     // Handle window resize
